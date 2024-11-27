@@ -10,23 +10,26 @@
     constructor(data) {
       this.data = data;
     }
-    get(propName) {
+    get = (propName) => {
       return this.data[propName];
-    }
+    };
     set(updatedData) {
       Object.assign(this.data, updatedData);
+    }
+    getAllProps() {
+      return this.data;
     }
   };
 
   // src/Eventing.ts
   var Eventing = class {
     events = {};
-    on(eventName, callback) {
+    on = (eventName, callback) => {
       const callbacks = this.events[eventName] || [];
       callbacks.push(callback);
       this.events[eventName] = callbacks;
-    }
-    trigger(eventName) {
+    };
+    trigger = (eventName) => {
       const callbacks = this.events[eventName];
       if (!callbacks || !callbacks.length) {
         return;
@@ -34,7 +37,7 @@
       callbacks.forEach((callback) => {
         callback();
       });
-    }
+    };
   };
 
   // node_modules/axios/lib/helpers/bind.js
@@ -2558,11 +2561,35 @@
     constructor(attrs) {
       this.attributes = new Attributes(attrs);
     }
+    get on() {
+      return this.eventing.on;
+    }
+    get trigger() {
+      return this.eventing.trigger;
+    }
+    get get() {
+      return this.attributes.get;
+    }
+    set(updatedData) {
+      this.attributes.set(updatedData);
+      this.eventing.trigger("change");
+    }
+    fetch() {
+      const id = this.get("id");
+      if (!id) {
+        throw new Error("No ID provided");
+      }
+      this.sync.fetch(id).then((response) => this.set(response.data));
+    }
+    save() {
+      this.sync.save(this.attributes.getAllProps()).then((response) => {
+        this.trigger("save");
+      });
+    }
   };
 
   // src/index.ts
-  var john = new User({ id: "6830" });
-  john.fetch();
-  var alice = new User({ name: "Alice", age: 23 });
-  alice.save();
+  var user = new User({ name: "John Doe", age: 99 });
+  user.on("save", () => console.log("Sauvegarde des donn\xE9es"));
+  user.save();
 })();

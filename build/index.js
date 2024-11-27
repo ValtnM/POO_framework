@@ -5,7 +5,7 @@
       __defProp(target, name, { get: all3[name], enumerable: true });
   };
 
-  // src/Attributes.ts
+  // src/framework/Attributes.ts
   var Attributes = class {
     constructor(data) {
       this.data = data;
@@ -19,25 +19,6 @@
     getAllProps() {
       return this.data;
     }
-  };
-
-  // src/Eventing.ts
-  var Eventing = class {
-    events = {};
-    on = (eventName, callback) => {
-      const callbacks = this.events[eventName] || [];
-      callbacks.push(callback);
-      this.events[eventName] = callbacks;
-    };
-    trigger = (eventName) => {
-      const callbacks = this.events[eventName];
-      if (!callbacks || !callbacks.length) {
-        return;
-      }
-      callbacks.forEach((callback) => {
-        callback();
-      });
-    };
   };
 
   // node_modules/axios/lib/helpers/bind.js
@@ -2536,30 +2517,56 @@
     mergeConfig: mergeConfig2
   } = axios_default;
 
-  // src/Sync.ts
-  var Sync = class {
-    constructor(rootUrl) {
-      this.rootUrl = rootUrl;
-    }
-    fetch(id) {
-      return axios_default.get(`${this.rootUrl}/${id}`);
-    }
-    save(data) {
-      const { id } = data;
-      if (id) {
-        return axios_default.patch(`${this.rootUrl}/${id}`, data);
+  // src/framework/Eventing.ts
+  var Eventing = class {
+    events = {};
+    on = (eventName, callback) => {
+      const callbacks = this.events[eventName] || [];
+      callbacks.push(callback);
+      this.events[eventName] = callbacks;
+    };
+    trigger = (eventName) => {
+      const callbacks = this.events[eventName];
+      if (!callbacks || !callbacks.length) {
+        return;
       }
-      return axios_default.post(this.rootUrl, data);
+      callbacks.forEach((callback) => {
+        callback();
+      });
+    };
+  };
+
+  // src/framework/Collection.ts
+  var Collection = class {
+    constructor(rootUrl, deserialize) {
+      this.rootUrl = rootUrl;
+      this.deserialize = deserialize;
+    }
+    models = [];
+    eventing = new Eventing();
+    get on() {
+      return this.eventing.on;
+    }
+    get trigger() {
+      return this.eventing.trigger;
+    }
+    fetch() {
+      axios_default.get(this.rootUrl).then((response) => {
+        response.data.forEach((data) => {
+          const model = this.deserialize(data);
+          this.models.push(model);
+        });
+        this.trigger("change");
+      });
     }
   };
 
-  // src/User.ts
-  var User = class {
-    eventing = new Eventing();
-    sync = new Sync("http://localhost:3001/users");
-    attributes;
-    constructor(attrs) {
-      this.attributes = new Attributes(attrs);
+  // src/framework/Model.ts
+  var Model = class {
+    constructor(attributes, eventing, sync) {
+      this.attributes = attributes;
+      this.eventing = eventing;
+      this.sync = sync;
     }
     get on() {
       return this.eventing.on;
@@ -2588,8 +2595,40 @@
     }
   };
 
+  // src/framework/Sync.ts
+  var Sync = class {
+    constructor(rootUrl) {
+      this.rootUrl = rootUrl;
+    }
+    fetch(id) {
+      return axios_default.get(`${this.rootUrl}/${id}`);
+    }
+    save(data) {
+      const { id } = data;
+      if (id) {
+        return axios_default.patch(`${this.rootUrl}/${id}`, data);
+      }
+      return axios_default.post(this.rootUrl, data);
+    }
+  };
+
+  // src/user/User.ts
+  var apiUrl = "http://localhost:3001/users";
+  var User = class _User extends Model {
+    static buildUser(attrs) {
+      return new _User(
+        new Attributes(attrs),
+        new Eventing(),
+        new Sync(apiUrl)
+      );
+    }
+    static buildCollection() {
+      return new Collection(apiUrl, _User.buildUser);
+    }
+  };
+
   // src/index.ts
-  var user = new User({ name: "John Doe", age: 99 });
-  user.on("save", () => console.log("Sauvegarde des donn\xE9es"));
-  user.save();
+  var collection = User.buildCollection();
+  collection.fetch();
+  console.log(collection.models);
 })();

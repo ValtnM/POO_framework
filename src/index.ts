@@ -1,9 +1,8 @@
-import { User } from "./User";
-import axios from "axios";
+import { User, UserProps } from "./user/User";
+import { Collection } from "./framework/Collection";
 
-const user = new User({name: 'John Doe', age: 99})
+const collection = User.buildCollection()
 
-user.on('save', () => console.log('Sauvegarde des données'))
+collection.fetch()
+console.log(collection.models);
 
-user.save()
-// user.trigger('change')

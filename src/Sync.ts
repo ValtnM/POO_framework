@@ -1,24 +1,24 @@
 import axios from "axios";
 import { UserProps } from "./User";
 
+interface HasId {
+    id?: string
+}
 
-class Sync {
-    constructor(public data: UserProps){}
+export class Sync<P extends HasId> {
+  constructor(public rootUrl: string) {}
 
-    fetch() {
-        axios
-          .get(`http://localhost:3001/users/${this.get("id")}`)
-          .then((response) => {
-            this.set(response.data);
-          });
-      }
-    
-      save() {
-        const id = this.get("id");
-        if (id) {
-          axios.patch(`http://localhost:3001/users/${id}`, this.data);
-        } else {
-          axios.post(`http://localhost:3001/users`, this.data);
-        }
-      }
+  fetch(id: string) {
+    return axios.get(`${this.rootUrl}/${id}`);
+  }
+
+  save(data: P) {
+    const { id } = data;
+    if (id) {
+      // Mise à jour
+      return axios.patch(`${this.rootUrl}/${id}`, data);
+    }
+    // Création
+    return axios.post(this.rootUrl, data);
+  }
 }

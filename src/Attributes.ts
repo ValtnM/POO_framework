@@ -1,13 +1,11 @@
-import { UserProps } from "./User";
+export class Attributes<P extends object> {
+  constructor(public data: P) {}
 
-class Attributes {
-  constructor(public data: UserProps) {}
-
-  get(propName: string): string | number {
+  get<K extends keyof P>(propName: K): P[K] {
     return this.data[propName];
   }
 
-  set(updatedData: Partial<UserProps>): void {
+  set(updatedData: Partial<P>): void {
     Object.assign(this.data, updatedData);
   }
 }

@@ -5,6 +5,38 @@
       __defProp(target, name, { get: all3[name], enumerable: true });
   };
 
+  // src/Attributes.ts
+  var Attributes = class {
+    constructor(data) {
+      this.data = data;
+    }
+    get(propName) {
+      return this.data[propName];
+    }
+    set(updatedData) {
+      Object.assign(this.data, updatedData);
+    }
+  };
+
+  // src/Eventing.ts
+  var Eventing = class {
+    events = {};
+    on(eventName, callback) {
+      const callbacks = this.events[eventName] || [];
+      callbacks.push(callback);
+      this.events[eventName] = callbacks;
+    }
+    trigger(eventName) {
+      const callbacks = this.events[eventName];
+      if (!callbacks || !callbacks.length) {
+        return;
+      }
+      callbacks.forEach((callback) => {
+        callback();
+      });
+    }
+  };
+
   // node_modules/axios/lib/helpers/bind.js
   function bind(fn, thisArg) {
     return function wrap() {
@@ -2501,44 +2533,30 @@
     mergeConfig: mergeConfig2
   } = axios_default;
 
+  // src/Sync.ts
+  var Sync = class {
+    constructor(rootUrl) {
+      this.rootUrl = rootUrl;
+    }
+    fetch(id) {
+      return axios_default.get(`${this.rootUrl}/${id}`);
+    }
+    save(data) {
+      const { id } = data;
+      if (id) {
+        return axios_default.patch(`${this.rootUrl}/${id}`, data);
+      }
+      return axios_default.post(this.rootUrl, data);
+    }
+  };
+
   // src/User.ts
   var User = class {
-    constructor(data) {
-      this.data = data;
-    }
-    events = {};
-    get(propName) {
-      return this.data[propName];
-    }
-    set(updatedData) {
-      Object.assign(this.data, updatedData);
-    }
-    on(eventName, callback) {
-      const callbacks = this.events[eventName] || [];
-      callbacks.push(callback);
-      this.events[eventName] = callbacks;
-    }
-    trigger(eventName) {
-      const callbacks = this.events[eventName];
-      if (!callbacks || !callbacks.length) {
-        return;
-      }
-      callbacks.forEach((callback) => {
-        callback();
-      });
-    }
-    fetch() {
-      axios_default.get(`http://localhost:3001/users/${this.get("id")}`).then((response) => {
-        this.set(response.data);
-      });
-    }
-    save() {
-      const id = this.get("id");
-      if (id) {
-        axios_default.patch(`http://localhost:3001/users/${id}`, this.data);
-      } else {
-        axios_default.post(`http://localhost:3001/users`, this.data);
-      }
+    eventing = new Eventing();
+    sync = new Sync("http://localhost:3001/users");
+    attributes;
+    constructor(attrs) {
+      this.attributes = new Attributes(attrs);
     }
   };
 

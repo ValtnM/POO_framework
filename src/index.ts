@@ -1,8 +1,10 @@
-import { User, UserProps } from "./user/User";
-import { Collection } from "./framework/Collection";
+import { User } from "./user/User";
+import { UserEdit } from "./user/UserEdit";
+import { UserForm } from "./user/UserForm";
 
-const collection = User.buildCollection()
+const parent = document.getElementById("root");
+const john = User.buildUser({ name: "John Doe", age: 45 });
 
-collection.fetch()
-console.log(collection.models);
-
+const userEdit = new UserEdit(parent!, john);
+userEdit.render();
+console.log(userEdit);
